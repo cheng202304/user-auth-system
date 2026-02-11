@@ -1,5 +1,7 @@
-import express, { Router, Request, Response, NextFunction } from 'express';
-import { register, login } from '../controllers/auth.controller';
+import express, { Router, Response } from 'express';
+import { register, login, logout, getCurrentUser } from '../controllers/auth.controller';
+import { validateRegister, validateLogin } from '../middleware/validation.middleware';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -8,39 +10,27 @@ const router = Router();
  * @desc    Register a new user
  * @access  Public
  */
-router.post('/register', register);
+router.post('/register', ...validateRegister, register);
 
 /**
  * @route   POST /api/auth/login
  * @desc    Login user
  * @access  Public
  */
-router.post('/login', login);
+router.post('/login', ...validateLogin, login);
 
 /**
  * @route   POST /api/auth/logout
  * @desc    Logout user
  * @access  Private (requires token)
  */
-router.post('/logout', (req: Request, res: Response) => {
-  res.status(200).json({
-    success: true,
-    message: 'Logout successful',
-  });
-});
+router.post('/logout', authenticate, logout);
 
 /**
  * @route   GET /api/auth/me
  * @desc    Get current user info
  * @access  Private (requires token)
  */
-router.get('/me', (req: Request, res: Response) => {
-  res.status(200).json({
-    success: true,
-    data: {
-      message: 'Protected route - user authentication required',
-    },
-  });
-});
+router.get('/me', authenticate, getCurrentUser);
 
 export { router as authRoutes };

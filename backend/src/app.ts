@@ -1,14 +1,37 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import compression from 'compression';
+import helmet from 'helmet';
+import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { authRoutes } from './routes/auth.routes';
+import { errorHandler, notFoundHandler } from './middleware/error.middleware';
+import { config } from './config';
 
 dotenv.config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// Security middleware
+app.use(helmet());
+
+// CORS middleware with specific origin
+app.use(cors({
+  origin: config.corsOrigin,
+  credentials: true,
+}));
+
+// Request logging
+if (config.nodeEnv === 'development') {
+  app.use(morgan('dev'));
+} else {
+  app.use(morgan('combined'));
+}
+
+// Compression middleware
+app.use(compression());
+
+// Body parser middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -25,20 +48,9 @@ app.get('/health', (req: Request, res: Response) => {
 app.use('/api/auth', authRoutes);
 
 // 404 handler
-app.use((req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    error: 'Route not found',
-  });
-});
+app.use(notFoundHandler);
 
 // Error handler
-app.use((err: any, req: Request, res: Response, next: any) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    success: false,
-    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
-  });
-});
+app.use(errorHandler);
 
 export { app };

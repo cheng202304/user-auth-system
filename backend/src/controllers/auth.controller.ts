@@ -4,6 +4,7 @@ import { DatabaseService } from '../database/services/user.service';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
+import { AuthRequest } from '../middleware/auth.middleware';
 
 interface RegisterRequestBody {
   email: string;
@@ -22,31 +23,6 @@ interface LoginRequestBody {
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
     const { email, password, username } = req.body as RegisterRequestBody;
-
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        error: 'Email and password are required',
-      });
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid email format',
-      });
-    }
-
-    // Validate password strength (minimum 8 characters)
-    if (password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        error: 'Password must be at least 8 characters long',
-      });
-    }
 
     const db = await getDatabase();
     const dbService = DatabaseService.getInstance();
@@ -97,14 +73,6 @@ export async function register(req: Request, res: Response, next: NextFunction) 
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
     const { email, password } = req.body as LoginRequestBody;
-
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        error: 'Email and password are required',
-      });
-    }
 
     const db = await getDatabase();
     const dbService = DatabaseService.getInstance();
@@ -159,17 +127,22 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
     // Store refresh token in database
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+    expiresAt.setDate(expiresAt.getDate() + 7);
 
-    db.run(
-      'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
-      [user.id, refreshToken, expiresAt.toISOString()],
-      (err: Error | null) => {
-        if (err) {
-          console.error('Failed to store refresh token:', err);
+    await new Promise<void>((resolve, reject) => {
+      db.run(
+        'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
+        [user.id, refreshToken, expiresAt.toISOString()],
+        (err: Error | null) => {
+          if (err) {
+            console.error('Failed to store refresh token:', err);
+            reject(err);
+          } else {
+            resolve();
+          }
         }
-      }
-    );
+      );
+    });
 
     // Return user without password
     res.status(200).json({
@@ -188,6 +161,88 @@ export async function login(req: Request, res: Response, next: NextFunction) {
           avatar: user.avatar,
           created_at: user.created_at,
         },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Logout user
+ */
+export async function logout(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const db = await getDatabase();
+    const authHeader = req.headers.authorization;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+
+      // Remove refresh token from database
+      await new Promise<void>((resolve, reject) => {
+        db.run(
+          'DELETE FROM refresh_tokens WHERE token = ?',
+          [token],
+          (err: Error | null) => {
+            if (err) {
+              console.error('Failed to delete refresh token:', err);
+              reject(err);
+            } else {
+              resolve();
+            }
+          }
+        );
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Logout successful',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Get current user info
+ */
+export async function getCurrentUser(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const db = await getDatabase();
+    const dbService = DatabaseService.getInstance();
+    await dbService.initialize(db);
+    const userService = dbService.getUserService();
+
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+      });
+    }
+
+    const user = await userService.getUserById(req.user.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        id: user.id,
+        account: user.account,
+        username: user.username,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        avatar: user.avatar,
+        status: user.status,
+        created_at: user.created_at,
       },
     });
   } catch (error) {
