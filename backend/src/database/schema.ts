@@ -12,7 +12,7 @@ export const schema = {
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       account VARCHAR(6) UNIQUE NOT NULL,
-      password VARCHAR(255) NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
       username VARCHAR(20) NOT NULL,
       email VARCHAR(100),
       phone VARCHAR(11),
@@ -103,7 +103,7 @@ export const schema = {
    * Default data - insert super admin account
    */
   seedSuperAdmin: `
-    INSERT OR IGNORE INTO users (account, password, username, role, status)
+    INSERT OR IGNORE INTO users (account, password_hash, username, role, status)
     VALUES ('000000', '$2b$10$rKZy3Jq6V8jXv5jYy8vX.OX5YQ5jYy8vX.OX5YQ5jYy8vX.OX5YQ5', '超级管理员', 'super_admin', 1)
   `,
 };
@@ -114,6 +114,9 @@ export const schema = {
 export async function runMigrations(db: Database): Promise<void> {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
+      // Enable foreign keys
+      db.run('PRAGMA foreign_keys = ON');
+
       // Create tables
       const tables = [
         schema.createUsersTable,
@@ -135,24 +138,22 @@ export async function runMigrations(db: Database): Promise<void> {
 
       const handleError = (err: Error | null) => {
         if (err) return reject(err);
+        checkComplete();
       };
 
       // Execute table creation
       tables.forEach(sql => {
         db.run(sql, handleError);
-        checkComplete();
       });
 
       // Create indexes
       Object.values(schema.indexes).forEach(sql => {
         db.run(sql, handleError);
-        checkComplete();
       });
 
       // Create triggers
       Object.values(schema.triggers).forEach(sql => {
         db.run(sql, handleError);
-        checkComplete();
       });
     });
   });

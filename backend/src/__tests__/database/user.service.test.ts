@@ -297,7 +297,7 @@ describe('UserService', () => {
       await userService.resetUserPassword(user.id, defaultPassword);
 
       const updatedUser = await userService.getUserById(user.id);
-      expect(updatedUser?.password).toBe(defaultPassword);
+      expect(updatedUser?.password_hash).toBe(defaultPassword);
     });
   });
 

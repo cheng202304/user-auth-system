@@ -1,13 +1,19 @@
 import sqlite3 from 'sqlite3';
-import { initializeDatabase, closeDatabase, getDatabaseService } from '../../database/connection';
-import { UserRepository } from '../../database/repositories/user.repository';
-import { UserService, DatabaseService } from '../../database/services/user.service';
+import { DatabaseService } from '../../database/services/user.service';
 import { User, CreateUserData, UserRole, UserStatus } from '../../database/models/user.model';
 import bcrypt from 'bcrypt';
 
 /**
  * Test database utilities
  */
+
+/**
+ * Reset DatabaseService singleton for testing
+ */
+export function resetDatabaseService(): void {
+  // Reset the singleton instance for clean test environment
+  (DatabaseService as any).instance = null;
+}
 
 /**
  * Create in-memory database for testing
@@ -29,6 +35,9 @@ export async function createTestDatabase(): Promise<sqlite3.Database> {
  * Setup test database with migrations
  */
 export async function setupTestDatabase(db: sqlite3.Database): Promise<void> {
+  // Reset singleton to ensure fresh state for each test
+  resetDatabaseService();
+
   const { runMigrations } = await import('../../database/schema');
   await runMigrations(db);
 
@@ -76,12 +85,12 @@ export async function createTestUser(
     email: userData.email || 'test@example.com',
     phone: userData.phone || '13800138000',
     role: userData.role || UserRole.STUDENT,
-    status: userData.status || UserStatus.ACTIVE,
+    status: userData.status !== undefined ? userData.status : UserStatus.ACTIVE,
   };
 
   return new Promise((resolve, reject) => {
     db.run(
-      `INSERT INTO users (account, password, username, email, phone, role, status)
+      `INSERT INTO users (account, password_hash, username, email, phone, role, status)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [createData.account, createData.password, createData.username, createData.email, createData.phone, createData.role, createData.status],
       function(this: any, err: Error | null) {

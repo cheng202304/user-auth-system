@@ -138,7 +138,7 @@ export class UserRepository {
   async create(userData: CreateUserData): Promise<User> {
     const query = `
       INSERT INTO users (
-        account, password, username, email, phone, role, avatar, status
+        account, password_hash, username, email, phone, role, avatar, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
@@ -203,7 +203,7 @@ export class UserRepository {
     }
 
     if (userData.password !== undefined) {
-      updates.push('password = ?');
+      updates.push('password_hash = ?');
       params.push(userData.password);
     }
 

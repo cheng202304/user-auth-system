@@ -5,7 +5,7 @@
 export interface User {
   id: number;
   account: string;
-  password: string;
+  password_hash: string;
   username: string;
   email?: string;
   phone?: string;
