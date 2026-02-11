@@ -1,0 +1,10 @@
+.register-page {
+  min-height: 100vh;
+  background: #242424;
+}
+
+.register-container {
+  padding: 8rem 2rem 4rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}

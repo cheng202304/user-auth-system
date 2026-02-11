@@ -1,13 +1,18 @@
 import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import { Home } from './pages/Home';
+import { Features } from './pages/Features';
+import { Login } from './pages/Login';
+import { Register } from './pages/Register';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>User Authentication System</h1>
-        <p>Frontend with React + TypeScript</p>
-      </header>
-    </div>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/features" element={<Features />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+    </Routes>
   );
 }
 
