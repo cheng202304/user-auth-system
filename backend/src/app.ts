@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { authRoutes } from './routes/auth.routes';
+import { profileRoutes } from './routes/profile.routes';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
