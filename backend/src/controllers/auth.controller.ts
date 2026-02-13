@@ -9,6 +9,7 @@ interface RegisterRequestBody {
   email: string;
   password: string;
   username?: string;
+  phone?: string;
 }
 
 interface LoginRequestBody {
@@ -21,7 +22,7 @@ interface LoginRequestBody {
  */
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
-    const { email, password, username } = req.body as RegisterRequestBody;
+    const { email, password, username, phone } = req.body as RegisterRequestBody;
 
     // Validate input
     if (!email || !password) {
@@ -69,7 +70,8 @@ export async function register(req: Request, res: Response, next: NextFunction) 
     const user = await userService.registerUser(
       username || email.split('@')[0],
       passwordHash,
-      email
+      email,
+      phone
     );
 
     // Return created user without password
