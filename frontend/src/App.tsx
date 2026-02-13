@@ -1,33 +1,43 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { ProfileProvider } from './pages/ProfilePage';
-import { ProfilePage } from './components/ProfilePage';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
+import { LoginPage } from './pages/LoginPage';
+import { DashboardPage } from './pages/DashboardPage';
 
 function App() {
   return (
-    <Router>
-      <div className="App">
-        <header className="App-header">
-          <h1>User Authentication System</h1>
-          <nav>
-            <Link to="/profile">Profile</Link>
-          </nav>
-        </header>
-        <main>
-          <ProfileProvider>
-            <Routes>
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/" element={
-                <div>
-                  <p>Welcome to the User Authentication System</p>
-                  <p>Navigate to <Link to="/profile">Profile</Link> to manage your account</p>
-                </div>
-              } />
-            </Routes>
-          </ProfileProvider>
-        </main>
-      </div>
-    </Router>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public routes */}
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <LoginPage />
+              </PublicRoute>
+            }
+          />
+
+          {/* Protected routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Default route - redirect to login */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+
+          {/* Catch all - redirect to login */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

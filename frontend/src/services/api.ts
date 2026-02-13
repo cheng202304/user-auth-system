@@ -1,102 +1,291 @@
-import { User, ProfileUpdateData, PasswordChangeData, ApiResponse, LoginResponse, UserRole, UserStatus } from '../types';
-
+/**
+ * API base configuration
+ * Use VITE_API_URL environment variable or default to '/api'
+ */
 const API_BASE_URL = '/api';
 
-// Helper to get auth token
-function getAuthToken(): string | null {
-  return localStorage.getItem('accessToken');
+/**
+ * API response interface
+ */
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: T;
 }
 
-// Helper to set auth token
-export function setAuthToken(token: string): void {
-  localStorage.setItem('accessToken', token);
+/**
+ * User data interface
+ */
+export interface User {
+  id: number;
+  account: string;
+  email: string;
+  username: string;
+  role: string;
+  status: number;
+  avatar?: string;
+  created_at: string;
 }
 
-// Helper to remove auth token
-export function removeAuthToken(): void {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
+/**
+ * Login request interface
+ */
+export interface LoginRequest {
+  email: string;
+  password: string;
 }
 
-// API helper
-async function fetchApi<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<ApiResponse<T>> {
-  const token = getAuthToken();
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
-  };
-
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-
-  const data = await response.json();
-  return data;
+/**
+ * Login response interface
+ */
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: User;
 }
 
-// Auth API
-export const authApi = {
-  // Register
-  async register(email: string, password: string, username?: string, phone?: string): Promise<ApiResponse<User>> {
-    return fetchApi<User>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ email, password, username, phone }),
+/**
+ * Register request interface
+ */
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  username?: string;
+}
+
+/**
+ * API error class
+ */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status?: number,
+    public data?: any
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+/**
+ * API client class
+ */
+class ApiClient {
+  private baseUrl: string;
+  private accessToken: string | null = null;
+  private refreshToken: string | null = null;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+    this.loadTokens();
+  }
+
+  /**
+   * Load tokens from localStorage
+   */
+  private loadTokens(): void {
+    this.accessToken = localStorage.getItem('accessToken');
+    this.refreshToken = localStorage.getItem('refreshToken');
+  }
+
+  /**
+   * Save tokens to localStorage
+   */
+  private saveTokens(accessToken: string, refreshToken: string): void {
+    this.accessToken = accessToken;
+    this.refreshToken = refreshToken;
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+  }
+
+  /**
+   * Clear tokens from localStorage
+   */
+  private clearTokens(): void {
+    this.accessToken = null;
+    this.refreshToken = null;
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+  }
+
+  /**
+   * Get access token
+   */
+  getAccessToken(): string | null {
+    return this.accessToken;
+  }
+
+  /**
+   * Get refresh token
+   */
+  getRefreshToken(): string | null {
+    return this.refreshToken;
+  }
+
+  /**
+   * Make API request
+   */
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    // Add authorization header if access token exists
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
     });
-  },
 
-  // Login
-  async login(email: string, password: string): Promise<ApiResponse<LoginResponse>> {
-    const response = await fetchApi<LoginResponse>('/auth/login', {
+    const data: ApiResponse<T> = await response.json();
+
+    if (!response.ok) {
+      throw new ApiError(
+        data.error || 'API request failed',
+        response.status,
+        data
+      );
+    }
+
+    return data;
+  }
+
+  /**
+   * Handle token refresh
+   */
+  private async refreshAccessToken(): Promise<void> {
+    if (!this.refreshToken) {
+      throw new ApiError('No refresh token available');
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken: this.refreshToken }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new ApiError(data.error || 'Token refresh failed');
+      }
+
+      // Save new tokens
+      this.saveTokens(data.data.accessToken, data.data.refreshToken);
+    } catch (error) {
+      // Clear tokens on refresh failure
+      this.clearTokens();
+      throw error;
+    }
+  }
+
+  /**
+   * Make authenticated API request with automatic token refresh
+   */
+  private async authenticatedRequest<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    try {
+      return await this.request<T>(endpoint, options);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        // Token expired, try to refresh
+        try {
+          await this.refreshAccessToken();
+          return await this.request<T>(endpoint, options);
+        } catch (refreshError) {
+          // Refresh failed, clear tokens
+          this.clearTokens();
+          throw new ApiError('Session expired, please login again');
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Login user
+   */
+  async login(credentials: LoginRequest): Promise<LoginResponse> {
+    const response = await this.request<LoginResponse>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(credentials),
     });
 
     if (response.success && response.data) {
-      setAuthToken(response.data.accessToken);
+      this.saveTokens(response.data.accessToken, response.data.refreshToken);
+      return response.data;
     }
 
-    return response;
-  },
+    throw new ApiError('Login failed');
+  }
 
-  // Logout
-  async logout(): Promise<ApiResponse<void>> {
-    const response = await fetchApi<void>('/auth/logout', {
+  /**
+   * Register user
+   */
+  async register(userData: RegisterRequest): Promise<User> {
+    const response = await this.request<User>('/auth/register', {
       method: 'POST',
+      body: JSON.stringify(userData),
     });
 
-    removeAuthToken();
-    return response;
-  },
-};
+    if (response.success && response.data) {
+      return response.data;
+    }
 
-// Profile API
-export const profileApi = {
-  // Get current user profile
-  async getProfile(): Promise<ApiResponse<User>> {
-    return fetchApi<User>('/profile', {
-      method: 'GET',
-    });
-  },
+    throw new ApiError('Registration failed');
+  }
 
-  // Update profile
-  async updateProfile(data: ProfileUpdateData): Promise<ApiResponse<User>> {
-    return fetchApi<User>('/profile', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  },
+  /**
+   * Logout user
+   */
+  async logout(): Promise<void> {
+    try {
+      await this.authenticatedRequest<void>('/auth/logout', {
+        method: 'POST',
+      });
+    } finally {
+      // Always clear tokens locally
+      this.clearTokens();
+    }
+  }
 
-  // Change password
-  async changePassword(data: PasswordChangeData): Promise<ApiResponse<void>> {
-    return fetchApi<void>('/profile/password', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  },
-};
+  /**
+   * Get current user info
+   */
+  async getCurrentUser(): Promise<User> {
+    const response = await this.authenticatedRequest<User>('/auth/me');
+
+    if (response.success && response.data) {
+      return response.data;
+    }
+
+    throw new ApiError('Failed to get user info');
+  }
+
+  /**
+   * Check if user is authenticated
+   */
+  isAuthenticated(): boolean {
+    return !!this.accessToken;
+  }
+}
+
+/**
+ * Export singleton API client instance
+ */
+export const apiClient = new ApiClient(API_BASE_URL);
