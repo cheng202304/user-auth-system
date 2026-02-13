@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getProfile, updateProfile, changePassword } from '../controllers/profile.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticateToken } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -9,20 +9,20 @@ const router = Router();
  * @desc    Get current user profile
  * @access  Private (requires token)
  */
-router.get('/', authenticate, getProfile);
+router.get('/', authenticateToken, getProfile);
 
 /**
  * @route   PUT /api/profile
  * @desc    Update current user profile
  * @access  Private (requires token)
  */
-router.put('/', authenticate, updateProfile);
+router.put('/', authenticateToken, updateProfile);
 
 /**
  * @route   PUT /api/profile/password
  * @desc    Change user password
  * @access  Private (requires token)
  */
-router.put('/password', authenticate, changePassword);
+router.put('/password', authenticateToken, changePassword);
 
 export { router as profileRoutes };

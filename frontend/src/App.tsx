@@ -4,6 +4,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { ProfileProvider } from './pages/ProfilePage';
+import { ProfilePage as ProfilePageComponent } from './components/ProfilePage';
 
 function App() {
   return (
@@ -26,6 +28,17 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfileProvider>
+                  <ProfilePageComponent />
+                </ProfileProvider>
               </ProtectedRoute>
             }
           />

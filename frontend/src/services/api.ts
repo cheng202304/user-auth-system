@@ -289,3 +289,70 @@ class ApiClient {
  * Export singleton API client instance
  */
 export const apiClient = new ApiClient(API_BASE_URL);
+
+/**
+ * Profile update data interface
+ */
+export interface ProfileUpdateData {
+  username?: string;
+  email?: string;
+  phone?: string;
+  avatar?: string;
+}
+
+/**
+ * Password change data interface
+ */
+export interface PasswordChangeData {
+  oldPassword: string;
+  newPassword: string;
+}
+
+/**
+ * Profile API methods
+ */
+export const profileApi = {
+  /**
+   * Get current user profile
+   */
+  async getProfile(): Promise<ApiResponse<User>> {
+    return apiClient.authenticatedRequest<User>('/profile', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Update current user profile
+   */
+  async updateProfile(data: ProfileUpdateData): Promise<ApiResponse<User>> {
+    return apiClient.authenticatedRequest<User>('/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Change user password
+   */
+  async changePassword(data: PasswordChangeData): Promise<ApiResponse<void>> {
+    return apiClient.authenticatedRequest<void>('/profile/password', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+/**
+ * Set authentication token
+ */
+export function setAuthToken(token: string): void {
+  localStorage.setItem('accessToken', token);
+}
+
+/**
+ * Remove authentication token
+ */
+export function removeAuthToken(): void {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+}
