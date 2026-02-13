@@ -1,5 +1,8 @@
 import express, { Router, Request, Response, NextFunction } from 'express';
-import { register, login } from '../controllers/auth.controller';
+import { register, login, logout } from '../controllers/auth.controller';
+import { authenticateToken, AuthRequest } from '../middleware/auth.middleware';
+import { getDatabase } from '../database/connection';
+import { DatabaseService } from '../database/services/user.service';
 
 const router = Router();
 
@@ -22,25 +25,52 @@ router.post('/login', login);
  * @desc    Logout user
  * @access  Private (requires token)
  */
-router.post('/logout', (req: Request, res: Response) => {
-  res.status(200).json({
-    success: true,
-    message: 'Logout successful',
-  });
-});
+router.post('/logout', authenticateToken, logout);
 
 /**
  * @route   GET /api/auth/me
  * @desc    Get current user info
  * @access  Private (requires token)
  */
-router.get('/me', (req: Request, res: Response) => {
-  res.status(200).json({
-    success: true,
-    data: {
-      message: 'Protected route - user authentication required',
-    },
-  });
+router.get('/me', authenticateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated',
+      });
+    }
+
+    const db = await getDatabase();
+    const dbService = DatabaseService.getInstance();
+    await dbService.initialize(db);
+    const userService = dbService.getUserService();
+
+    const user = await userService.getUserById(req.user.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        id: user.id,
+        account: user.account,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        status: user.status,
+        avatar: user.avatar,
+        created_at: user.created_at,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 export { router as authRoutes };

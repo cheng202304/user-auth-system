@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { getDatabase } from '../database/connection';
 import { DatabaseService } from '../database/services/user.service';
+import { TokenRepository } from '../database/repositories/token.repository';
+import { AuthRequest } from '../middleware/auth.middleware';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
@@ -189,6 +191,34 @@ export async function login(req: Request, res: Response, next: NextFunction) {
           created_at: user.created_at,
         },
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Logout user
+ */
+export async function logout(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    // User should be authenticated via middleware
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated',
+      });
+    }
+
+    const db = await getDatabase();
+    const tokenRepository = new TokenRepository(db);
+
+    // Delete all refresh tokens for this user
+    await tokenRepository.deleteByUserId(req.user.userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Logout successful',
     });
   } catch (error) {
     next(error);
