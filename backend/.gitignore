@@ -1,0 +1,25 @@
+# Environment variables
+node_modules/
+dist/
+*.log
+
+# Database files (in development)
+data/*.db
+data/*.db-journal
+
+# Build artifacts
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
