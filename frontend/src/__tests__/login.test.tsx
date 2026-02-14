@@ -14,10 +14,10 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-const mockUseAuth = {
+const mockUseAuth: any = {
   login: mockLogin,
   isLoading: false,
-  error: null,
+  error: null as string | null,
   clearError: mockClearError,
   isAuthenticated: false,
   register: jest.fn(),

@@ -132,12 +132,11 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
 
-    const headers: HeadersInit = {
+    // Add authorization header if access token exists
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
     };
 
-    // Add authorization header if access token exists
     if (this.accessToken) {
       headers['Authorization'] = `Bearer ${this.accessToken}`;
     }
@@ -195,7 +194,7 @@ class ApiClient {
   /**
    * Make authenticated API request with automatic token refresh
    */
-  private async authenticatedRequest<T>(
+  async authenticatedRequest<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {

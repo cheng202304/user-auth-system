@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, ProfileUpdateData, PasswordChangeData } from '../types';
+import { User, ProfileUpdateData, PasswordChangeData, UserRole } from '../types';
 import { profileApi, setAuthToken, removeAuthToken } from '../services/api';
 
 interface ProfileContextType {
@@ -29,7 +29,7 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
     try {
       const response = await profileApi.getProfile();
       if (response.success && response.data) {
-        setProfile(response.data);
+        setProfile(response.data as User);
       } else {
         setError(response.error || 'Failed to fetch profile');
       }
@@ -46,7 +46,7 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
     try {
       const response = await profileApi.updateProfile(data);
       if (response.success && response.data) {
-        setProfile(response.data);
+        setProfile(response.data as User);
         return true;
       } else {
         setError(response.error || 'Failed to update profile');

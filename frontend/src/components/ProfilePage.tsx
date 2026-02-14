@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useProfile } from './ProfilePage';
+import { useProfile } from '../pages/ProfilePage';
 import { ProfileUpdateData, PasswordChangeData } from '../types';
 
 interface ProfileFormData {
