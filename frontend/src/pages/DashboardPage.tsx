@@ -1,123 +1,228 @@
 import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
- * Dashboard page component
- * Protected route - only accessible after login
+ * 仪表盘页面组件
+ * 受保护路由 - 仅登录后可访问
  */
 export function DashboardPage(): JSX.Element {
   const { user, logout, isLoading } = useAuth();
+  const navigate = useNavigate();
 
+  // 加载状态
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="loading-spinner"></div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Navigation Bar */}
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">User Auth System</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-700">Welcome, {user?.username}</span>
-              <button
-                onClick={logout}
-                className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+  // 处理登出
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('登出失败:', error);
+    }
+  };
+
+  // 根据角色确定显示内容
+  const renderUserRoleContent = () => {
+    if (!user) return null;
+
+    switch (user.role) {
+      case 'super_admin':
+      case 'admin':
+        return (
+          <div className="mt-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              管理员功能
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Link 
+                to="/profile" 
+                className="btn btn-secondary py-3 text-center"
               >
-                Logout
-              </button>
+                用户管理
+              </Link>
+              <Link 
+                to="/profile" 
+                className="btn btn-secondary py-3 text-center"
+              >
+                系统设置
+              </Link>
             </div>
           </div>
+        );
+      case 'teacher':
+        return (
+          <div className="mt-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              教师功能
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Link 
+                to="/profile" 
+                className="btn btn-secondary py-3 text-center"
+              >
+                课程管理
+              </Link>
+              <Link 
+                to="/profile" 
+                className="btn btn-secondary py-3 text-center"
+              >
+                学生管理
+              </Link>
+            </div>
+          </div>
+        );
+      case 'student':
+        return (
+          <div className="mt-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              学生功能
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Link 
+                to="/profile" 
+                className="btn btn-secondary py-3 text-center"
+              >
+                我的课程
+              </Link>
+              <Link 
+                to="/profile" 
+                className="btn btn-secondary py-3 text-center"
+              >
+                学习进度
+              </Link>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* 导航栏 */}
+      <nav className="navbar">
+        <Link to="/" className="navbar-brand">
+          用户认证系统
+        </Link>
+        <div className="navbar-nav">
+          <Link to="/profile" className="btn-link">
+            个人中心
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="btn btn-secondary"
+          >
+            退出
+          </button>
         </div>
       </nav>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h2 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-              User Profile
-            </h2>
-            <dl className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
-              <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Account ID</dt>
-                <dd className="mt-1 text-sm text-gray-900">{user?.account}</dd>
-              </div>
-              <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Username</dt>
-                <dd className="mt-1 text-sm text-gray-900">{user?.username}</dd>
-              </div>
-              <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Email</dt>
-                <dd className="mt-1 text-sm text-gray-900">{user?.email}</dd>
-              </div>
-              <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Role</dt>
-                <dd className="mt-1 text-sm text-gray-900 capitalize">{user?.role}</dd>
-              </div>
-              <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Status</dt>
-                <dd className="mt-1">
-                  {user?.status === 1 ? (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      Active
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                      Disabled
-                    </span>
-                  )}
-                </dd>
-              </div>
-              <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Member Since</dt>
-                <dd className="mt-1 text-sm text-gray-900">
-                  {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
-                </dd>
-              </div>
-            </dl>
+      {/* 主体内容 */}
+      <main className="container py-8">
+        <div className="card mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            欢迎回来，{user?.username}！
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-3">
+                账户信息
+              </h3>
+              <dl className="space-y-3">
+                <div>
+                  <dt className="text-sm font-medium text-gray-600">账号</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{user?.account}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-600">用户名</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{user?.username}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-600">邮箱</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{user?.email}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-600">角色</dt>
+                  <dd className="mt-1 text-sm text-gray-900">
+                    {user?.role === 'super_admin' && '超级管理员'}
+                    {user?.role === 'admin' && '管理员'}
+                    {user?.role === 'teacher' && '教师'}
+                    {user?.role === 'student' && '学生'}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-3">
+                账户状态
+              </h3>
+              <dl className="space-y-3">
+                <div>
+                  <dt className="text-sm font-medium text-gray-600">状态</dt>
+                  <dd className="mt-1">
+                    {user?.status === 1 ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        正常
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        已禁用
+                      </span>
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-600">注册时间</dt>
+                  <dd className="mt-1 text-sm text-gray-900">
+                    {user?.created_at ? new Date(user.created_at).toLocaleDateString('zh-CN') : 'N/A'}
+                  </dd>
+                </div>
+              </dl>
+            </div>
           </div>
         </div>
 
-        {/* Additional Information Card */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-6 w-6 text-blue-400"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-800">
-                Authentication Successful
-              </h3>
-              <div className="mt-2 text-sm text-blue-700">
-                <p>
-                  You have successfully logged in to the User Authentication System. Your session is active and you can access protected resources.
-                </p>
-              </div>
-            </div>
+        {/* 角色特定功能 */}
+        {renderUserRoleContent()}
+
+        {/* 快速操作 */}
+        <div className="card mt-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            快速操作
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <Link 
+              to="/profile" 
+              className="btn btn-secondary py-3 text-center"
+            >
+              修改个人信息
+            </Link>
+            <Link 
+              to="/profile" 
+              className="btn btn-secondary py-3 text-center"
+            >
+              修改密码
+            </Link>
+            <Link 
+              to="/profile" 
+              className="btn btn-secondary py-3 text-center"
+            >
+              上传头像
+            </Link>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

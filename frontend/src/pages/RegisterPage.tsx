@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
- * 登录表单数据接口
+ * 注册表单数据接口
  */
-interface LoginFormData {
+interface RegisterFormData {
   email: string;
   password: string;
+  username: string;
 }
 
 /**
@@ -16,18 +17,20 @@ interface LoginFormData {
 interface FormErrors {
   email?: string;
   password?: string;
+  username?: string;
 }
 
 /**
- * 登录页面组件
+ * 注册页面组件
  */
-export function LoginPage(): JSX.Element {
+export function RegisterPage(): JSX.Element {
   const navigate = useNavigate();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { register, isLoading, error, clearError } = useAuth();
 
-  const [formData, setFormData] = useState<LoginFormData>({
+  const [formData, setFormData] = useState<RegisterFormData>({
     email: '',
     password: '',
+    username: '',
   });
 
   const [formErrors, setFormErrors] = useState<FormErrors>({});
@@ -47,6 +50,13 @@ export function LoginPage(): JSX.Element {
    */
   const validateForm = (): boolean => {
     const errors: FormErrors = {};
+
+    // 用户名验证
+    if (!formData.username) {
+      errors.username = '用户名不能为空';
+    } else if (formData.username.length < 2 || formData.username.length > 20) {
+      errors.username = '用户名长度必须在2-20个字符之间';
+    }
 
     // 邮箱验证
     if (!formData.email) {
@@ -101,10 +111,10 @@ export function LoginPage(): JSX.Element {
     setIsSubmitting(true);
 
     try {
-      await login(formData);
+      await register(formData);
       navigate('/dashboard');
     } catch (error) {
-      console.error('登录失败:', error);
+      console.error('注册失败:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -116,12 +126,12 @@ export function LoginPage(): JSX.Element {
         {/* 头部 */}
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900">
-            登录到您的账户
+            创建新账户
           </h2>
           <p className="mt-2 text-gray-600">
-            还没有账户？{' '}
-            <Link to="/register" className="text-blue-600 hover:text-blue-500">
-              立即注册
+            已有账户？{' '}
+            <Link to="/login" className="text-blue-600 hover:text-blue-500">
+              立即登录
             </Link>
           </p>
         </div>
@@ -136,6 +146,26 @@ export function LoginPage(): JSX.Element {
         {/* 表单 */}
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
+            {/* 用户名字段 */}
+            <div className="form-group">
+              <label htmlFor="username" className="form-label">
+                用户名
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                value={formData.username}
+                onChange={handleInputChange}
+                className={`form-input ${formErrors.username ? 'error' : ''}`}
+                placeholder="请输入用户名"
+                disabled={isSubmitting || isLoading}
+              />
+              {formErrors.username && (
+                <p className="form-error">{formErrors.username}</p>
+              )}
+            </div>
+
             {/* 邮箱字段 */}
             <div className="form-group">
               <label htmlFor="email" className="form-label">
@@ -187,10 +217,10 @@ export function LoginPage(): JSX.Element {
               {isSubmitting || isLoading ? (
                 <span className="flex items-center justify-center">
                   <span className="loading-spinner mr-2"></span>
-                  登录中...
+                  注册中...
                 </span>
               ) : (
-                '登录'
+                '注册'
               )}
             </button>
           </div>

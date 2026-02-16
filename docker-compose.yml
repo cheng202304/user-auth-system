@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  user-auth-system:
+    build: .
+    container_name: user-auth-system
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - auth-network
+
+  # 可选：Redis 服务（用于会话管理）
+  redis:
+    image: redis:7-alpine
+    container_name: user-auth-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - auth-network
+
+networks:
+  auth-network:
+    driver: bridge
+
+volumes:
+  redis-data:

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, ProfileUpdateData, PasswordChangeData, UserRole } from '../types';
-import { profileApi, setAuthToken, removeAuthToken } from '../services/api';
+import { User, ProfileUpdateData, PasswordChangeData } from '../types';
+import { profileApi } from '../services/api';
 
 interface ProfileContextType {
   profile: User | null;
@@ -31,10 +31,10 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
       if (response.success && response.data) {
         setProfile(response.data as User);
       } else {
-        setError(response.error || 'Failed to fetch profile');
+        setError(response.error || '获取个人信息失败');
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      setError(err.message || '获取个人信息时发生错误');
     } finally {
       setLoading(false);
     }
@@ -49,11 +49,11 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
         setProfile(response.data as User);
         return true;
       } else {
-        setError(response.error || 'Failed to update profile');
+        setError(response.error || '更新个人信息失败');
         return false;
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      setError(err.message || '更新个人信息时发生错误');
       return false;
     } finally {
       setLoading(false);
@@ -68,11 +68,11 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
       if (response.success) {
         return true;
       } else {
-        setError(response.error || 'Failed to change password');
+        setError(response.error || '修改密码失败');
         return false;
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      setError(err.message || '修改密码时发生错误');
       return false;
     } finally {
       setLoading(false);
